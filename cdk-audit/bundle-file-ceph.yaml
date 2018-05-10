@@ -1,0 +1,113 @@
+description: A minimal two-machine Kubernetes cluster, appropriate for development.
+series: xenial
+machines:
+  '0':
+    series: xenial
+  '1':
+    series: xenial
+  '2':
+    series: xenial
+  '3':
+    series: xenial
+services:
+  ceph-osd:
+    charm: 'cs:ceph-osd-257'
+    num_units: 3
+    annotations:
+      gui-x: '300'
+      gui-y: '300'
+    to:
+    - kubernetes-worker
+  ceph-mon:
+    charm: 'cs:ceph-mon-23'
+    num_units: 3
+    annotations:
+      gui-x: '600'
+      gui-y: '300'
+    to:
+    - kubernetes-worker
+  easyrsa:
+    annotations:
+      gui-x: '450'
+      gui-y: '550'
+    charm: cs:~containers/easyrsa-27
+    num_units: 1
+    to:
+    - lxd:0
+  etcd:
+    annotations:
+      gui-x: '800'
+      gui-y: '550'
+    charm: cs:~containers/etcd-63
+    num_units: 1
+    to:
+    - '0'
+  flannel:
+    annotations:
+      gui-x: '450'
+      gui-y: '750'
+    charm: cs:~containers/flannel-40
+  kubernetes-master:
+    annotations:
+      gui-x: '800'
+      gui-y: '850'
+    charm: cs:~containers/kubernetes-master-78
+    expose: true
+    num_units: 1
+    options:
+      channel: 1.9/stable
+      dns_domain: kube.chrisprocter.co.uk
+      api-extra-args: > 
+        admission-control=Initializers,NamespaceLifecycle,LimitRanger,ServiceAccount,ResourceQuota,DefaultTolerationSeconds,DefaultStorageClass 
+        audit-log-path=/var/snap/kube-apiserver/common/k8s-audit.log 
+        audit-policy-file=/root/cdk/audit-policy.yaml
+    to:
+    - '0'
+  kubernetes-worker:
+    annotations:
+      gui-x: '100'
+      gui-y: '850'
+    charm: cs:~containers/kubernetes-worker-81
+    constraints: cores=4 mem=4G
+    expose: true
+    num_units: 3
+    options:
+      channel: 1.9/stable
+    to:
+    - '1'
+    - '2'
+    - '3'
+  file:
+    charm: cs:~chrisp262/filedeploy-0
+    num_units: 2
+    options:
+      filename: /etc/mytest
+      contents: aGVsbG8gd29ybGQK
+      command: 'uname -a >> /etc/mytest'
+    to:
+      - '0'
+      - '1'
+
+relations:
+- - kubernetes-master:kube-api-endpoint
+  - kubernetes-worker:kube-api-endpoint
+- - kubernetes-master:kube-control
+  - kubernetes-worker:kube-control
+- - kubernetes-master:certificates
+  - easyrsa:client
+- - kubernetes-master:etcd
+  - etcd:db
+- - kubernetes-worker:certificates
+  - easyrsa:client
+- - etcd:certificates
+  - easyrsa:client
+- - flannel:etcd
+  - etcd:db
+- - flannel:cni
+  - kubernetes-master:cni
+- - flannel:cni
+  - kubernetes-worker:cni
+- - ceph-mon:osd
+  - ceph-osd:mon
+- - kubernetes-master:ceph-storage
+  - ceph-mon:admin
