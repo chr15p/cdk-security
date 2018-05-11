@@ -28,13 +28,13 @@ Now the registry should be listening and ready for use on port 35000
 
 On AWS you will need to open the port for all workers
 
-> juju run  --unit kubernetes-worker/0 "open-port 35000"
+> juju run  --unit kubernetes-worker/0 "open-port 30500"
 
 
 but then you should be able to tag and push an image
 
-> docker tag busybox  registry.54.164.115.34.xip.io:35000/busybox
-> docker push  registry.54.164.115.34.xip.io:35000/busybox
+> docker tag busybox  registry.54.164.115.34.xip.io:30500/busybox
+> docker push  registry.54.164.115.34.xip.io:30500/busybox
 
 
 We still need to add storage....

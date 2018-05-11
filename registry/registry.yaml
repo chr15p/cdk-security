@@ -1,11 +1,11 @@
-apiVersion: v1
-kind: Secret
-metadata:
-  name: registry-tls-data
-type: Opaque
-data:
-  tls.crt: DOMAIN_CERT
-  tls.key: DOMAIN_KEY
+#apiVersion: v1
+#kind: Secret
+#metadata:
+#  name: registry-tls-data
+#type: Opaque
+#data:
+#  tls.crt: {{tlscert}}
+#  tls.key: {{tlskey}}
 
 ---
 apiVersion: v1
@@ -84,8 +84,8 @@ spec:
           protocol: TCP
       volumes:
       - name: image-store
-        hostPath:
-          path: /srv/registry
+        persistentVolumeClaim:
+          claimName: registry-image-store
       - name: auth-dir
         secret:
           secretName: registry-auth-data
@@ -108,5 +108,19 @@ spec:
   ports:
   - name: registry
     port: 5000
-    nodePort: 35000
+    nodePort: 30500
     protocol: TCP
+
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: registry-image-store
+spec:
+  accessModes:
+    - ReadWriteOnce
+  volumeMode: Filesystem
+  resources:
+    requests:
+      storage: 8Gi
+  storageClassName: persistant
